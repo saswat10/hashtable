@@ -2,6 +2,8 @@
 #include <time.h>
 
 #define MAX_LINE 4096
+#define FNV_PRIME 0x100000001b3
+#define FNV_OFFSET 0xcbf29ce48422325UL
 
 uint64_t hash(const char *name, size_t length)
 {
@@ -13,6 +15,35 @@ uint64_t hash(const char *name, size_t length)
     return hash_value;
 }
 
+uint64_t hash_fnv0(const char *name, size_t length)
+{
+    uint64_t hash_value = 0;
+    for(int i = 0; i < length; i++) {
+        hash_value *= FNV_PRIME;
+        hash_value ^= name[i];
+    }
+    return hash_value;
+}
+
+uint64_t hash_fnv1(const char *name, size_t length)
+{
+    uint64_t hash_value = FNV_OFFSET;
+    for(int i = 0; i < length; i++) {
+        hash_value *= FNV_PRIME;
+        hash_value ^= name[i];
+    }
+    return hash_value;
+}
+
+uint64_t hash_fnv1a(const char *name, size_t length)
+{
+    uint64_t hash_value = FNV_OFFSET;
+    for(int i = 0; i < length; i++) {
+        hash_value ^= name[i];
+        hash_value *= FNV_PRIME;
+    }
+    return hash_value;
+}
 void mycleanup(void *p) {
 	printf("Freeing up memory %p\n", p);
 	free(p);
@@ -38,7 +69,7 @@ int main(int argc, char **argv)
     uint32_t num_guesses = atol(argv[2]);
 
     const int tablesize = (1<<20);
-    hash_table *table = hash_table_create(tablesize, hash, mycleanup);
+    hash_table *table = hash_table_create(tablesize, hash_fnv1a, NULL);
 
     FILE *fp = fopen(filename, "r");
     char buffer[MAX_LINE];
@@ -52,6 +83,7 @@ int main(int argc, char **argv)
     }
     fclose(fp);
     printf("Loaded %d words into the table\n", numwords);
+	printf(".... with %lu collisions in the hash table \n", hash_table_collisions(table));
     // hash_table_print(table);
 
     // now make guesses
