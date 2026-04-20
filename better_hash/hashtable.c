@@ -1,4 +1,5 @@
 #include "hashtable.h"
+#include <stdint.h>
 
 typedef struct entry {
     char *key;
@@ -7,11 +8,12 @@ typedef struct entry {
 } entry;
 
 
-typedef struct _hash_table {
+struct _hash_table {
     uint32_t size;
     hashfunction *hash;
+	cleanupfunction *cleanup;
     entry **elements;
-} hash_table;
+};
 
 static size_t hash_table_index(hash_table *ht, const char *key)
 {
@@ -19,11 +21,17 @@ static size_t hash_table_index(hash_table *ht, const char *key)
     return result;
 }
 
-hash_table *hash_table_create(uint32_t size, hashfunction *hf)
+// pass in NULL cf for default free behaviour
+hash_table *hash_table_create(uint32_t size, hashfunction *hf, cleanupfunction *cf)
 {
     hash_table *ht = malloc(sizeof(*ht));
     ht->size = size;
     ht->hash = hf;
+	if(cf) {
+		ht->cleanup = cf;
+	} else {
+		ht->cleanup = free;
+    }
 
     // NOTE: calloc zeros out the memory
     ht->elements = calloc(sizeof(entry*), ht->size);
@@ -32,7 +40,16 @@ hash_table *hash_table_create(uint32_t size, hashfunction *hf)
 
 void hash_table_destroy(hash_table *ht)
 {
-    // need for free individual elements
+    // TODO: need for free individual elements
+	for(uint32_t i = 0; i < ht->size; i++){
+		while(ht->elements[i]) {
+			entry *tmp = ht->elements[i];
+			ht->elements[i] = ht->elements[i]->next;
+			free(tmp->key);
+			ht->cleanup(tmp->object);
+			free(tmp);
+		}
+	}
     free(ht->elements);
     free(ht);
 }

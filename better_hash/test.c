@@ -13,6 +13,11 @@ uint64_t hash(const char *name, size_t length)
     return hash_value;
 }
 
+void mycleanup(void *p) {
+	printf("Freeing up memory %p\n", p);
+	free(p);
+}
+
 void generate_random_word(char *buffer, size_t length)
 {
     for(size_t i = 0; i < length-1; i++) {
@@ -33,7 +38,7 @@ int main(int argc, char **argv)
     uint32_t num_guesses = atol(argv[2]);
 
     const int tablesize = (1<<20);
-    hash_table *table = hash_table_create(tablesize, hash);
+    hash_table *table = hash_table_create(tablesize, hash, mycleanup);
 
     FILE *fp = fopen(filename, "r");
     char buffer[MAX_LINE];
@@ -52,11 +57,10 @@ int main(int argc, char **argv)
     // now make guesses
     uint32_t good_guesses = 0;
     const int shortest_guess = 2;
-    const int longest_guess = 20;
+    const int longest_guess = 15;
     for(uint32_t i = 0; i < num_guesses; i++) {
         generate_random_word(buffer, shortest_guess + (rand() % (longest_guess-shortest_guess+1)));
         if(hash_table_lookup(table, buffer)) {
-            printf("%s\n", buffer);
             good_guesses++;
         }
     }

@@ -9,8 +9,9 @@
 
 typedef uint64_t (hashfunction) (const char*, size_t);
 typedef struct _hash_table hash_table;
+typedef void cleanupfunction(void *);
 
-hash_table *hash_table_create(uint32_t size, hashfunction *hf);
+hash_table *hash_table_create(uint32_t size, hashfunction *hf, cleanupfunction *cf);
 void hash_table_destroy(hash_table *ht);
 void hash_table_print(hash_table *ht);
 bool hash_table_insert(hash_table *ht, const char *key, void *obj);
